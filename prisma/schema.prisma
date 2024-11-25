@@ -1,0 +1,143 @@
+// This is your Prisma schema file
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String?
+  role          Role      @default(STUDENT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  profile       Profile?
+  institution   Institution?
+  tutor         Tutor?
+  reviews       Review[]
+  bookmarks     Bookmark[]
+}
+
+model Profile {
+  id          String    @id @default(cuid())
+  bio         String?   @db.Text
+  avatar      String?
+  phone       String?
+  address     String?   @db.Text
+  userId      String    @unique
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Institution {
+  id          String    @id @default(cuid())
+  name        String
+  type        String
+  description String    @db.Text
+  location    String
+  website     String?
+  phone       String?
+  email       String    @unique
+  logo        String?
+  images      String?   @db.Text // JSON array of image URLs
+  features    String?   @db.Text // JSON array of features
+  userId      String    @unique
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courses     Course[]
+  reviews     Review[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Tutor {
+  id          String    @id @default(cuid())
+  bio         String    @db.Text
+  expertise   String    @db.Text // JSON array of subjects
+  education   String    @db.Text // JSON array of qualifications
+  experience  Int       // Years of experience
+  hourlyRate  Decimal   @db.Decimal(10, 2)
+  availability String?  @db.Text // JSON schedule
+  userId      String    @unique
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviews     Review[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Course {
+  id            String      @id @default(cuid())
+  title         String
+  description   String      @db.Text
+  duration      String
+  price         Decimal     @db.Decimal(10, 2)
+  startDate     DateTime?
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model Review {
+  id            String      @id @default(cuid())
+  rating        Int
+  comment       String      @db.Text
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institutionId String?
+  institution   Institution? @relation(fields: [institutionId], references: [id], onDelete: SetNull)
+  tutorId       String?
+  tutor         Tutor?      @relation(fields: [tutorId], references: [id], onDelete: SetNull)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model Bookmark {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type          String      // "institution" or "tutor"
+  targetId      String      // ID of bookmarked institution or tutor
+  createdAt     DateTime    @default(now())
+
+  @@unique([userId, type, targetId])
+}
+
+model Advertisement {
+  id            String      @id @default(cuid())
+  title         String
+  description   String      @db.Text
+  image         String?
+  url           String
+  startDate     DateTime
+  endDate       DateTime
+  status        String      @default("pending") // pending, active, expired
+  type          String      // featured, banner, sidebar
+  price         Decimal     @db.Decimal(10, 2)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model BlogPost {
+  id            String      @id @default(cuid())
+  title         String
+  content       String      @db.Text
+  excerpt       String      @db.Text
+  slug          String      @unique
+  author        String
+  image         String?
+  published     Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+enum Role {
+  ADMIN
+  STUDENT
+  PARENT
+  INSTITUTION
+  TUTOR
+}
